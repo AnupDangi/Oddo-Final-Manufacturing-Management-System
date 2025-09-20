@@ -5,13 +5,31 @@ import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
 import productRoutes from './routes/products.js';
+import  database from './config/database.js';
 import bomRoutes from './routes/boms.js';
-import manufacturingOrderRoutes from './routes/manufacturingOrders.js';
-import database from './config/database.js';
+import stockLedgerRoutes from './routes/stockLedger.js';
+import workOrderRoutes from './routes/workOrders.js';
+import workCenterRoutes from './routes/workCenters.js';
 
-const app = express();
-const PORT = process.env.PORT || 5000;
+// import authRoutes from './routes/auth.js';
+// import userRoutes from './routes/users.js';
+// import productRoutes from './routes/products.js';
+// import workCenterRoutes from './routes/workCenters.js';
+// import bomRoutes from './routes/boms.js';
+// import manufacturingOrderRoutes from './routes/manufacturingOrders.js';
+// import workOrderRoutes from './routes/workOrders.js';
+// import stockLedgerRoutes from './routes/stockLedger.js';
+// import dashboardRoutes from './routes/dashboard.js';
 
+const app = express()
+const PORT = process.env.PORT
+app.use(express.json())
+app.use('/api/auth',userRoutes)
+app.use('/api/products',productRoutes);
+app.use('/api/v1', bomRoutes);
+app.use('/api/stock', stockLedgerRoutes);
+app.use('/api/work-orders', workOrderRoutes);
+app.use('/api/work-centers', workCenterRoutes)
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());

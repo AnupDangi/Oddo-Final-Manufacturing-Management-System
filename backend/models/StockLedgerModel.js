@@ -17,12 +17,14 @@ const stockLedgerSchema = new mongoose.Schema({
     },
     reference_type: {
         type: String,
-        enum: ['Manufacturing Order', 'Work Order', 'Manual'],
-        required: true
+        required: true,
+        // --- CHANGE 2: Added 'Purchase Order' ---
+        enum: ['Manufacturing Order', 'Work Order', 'Manual', 'Purchase Order']
     },
     reference_id: {
-        type: mongoose.Schema.Types.ObjectId,
-        refPath: 'reference_type'
+        // --- CHANGE 1: Changed type from ObjectId to String ---
+        type: String,
+        required: true
     },
     unit_cost: {
         type: Number,

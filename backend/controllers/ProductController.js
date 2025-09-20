@@ -223,7 +223,35 @@ export class ProductController {
             });
         }
     }
+    static async createMultipleProducts(req, res) {
+        try {
+            const products = req.body;
 
+            // Check if the body is an array and not empty
+            if (!Array.isArray(products) || products.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Request body must be a non-empty array of products.'
+                });
+            }
+
+            // Use Mongoose's insertMany for efficient bulk insertion
+            const createdProducts = await Product.insertMany(products, { ordered: false });
+
+            res.status(201).json({
+                success: true,
+                message: `${createdProducts.length} products created successfully`,
+                data: createdProducts
+            });
+        } catch (error) {
+            console.error('Bulk create product error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error creating products',
+                error: error.message
+            });
+        }
+    }
     // Delete product (soft delete)
     static async deleteProduct(req, res) {
         try {
