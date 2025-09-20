@@ -7,7 +7,7 @@ import { testConnection } from './config/db.js';
 
 const app = express()
 const PORT = process.env.PORT
-
+app.use(express.json())
 
 import authRoutes from './routes/auth.js';
 app.use('/api/v1/auth', authRoutes);

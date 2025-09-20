@@ -1,4 +1,4 @@
-import { supabase } from '../config/supabase.js';
+import { supabase } from '../config/db.js';
 
 // Middleware to verify JWT token from Supabase
 export const authenticateToken = async (req, res, next) => {
@@ -35,6 +35,37 @@ export const authenticateToken = async (req, res, next) => {
   }
 };
 
+// --- NEW MIDDLEWARE ---
+// Middleware to check if the user is an admin
+export const isAdmin = async (req, res, next) => {
+  try {
+    // This middleware must run AFTER authenticateToken
+    const userId = req.user.id;
+
+    // Query the profiles table to get the user's role
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single();
+
+    if (error || !profile) {
+      return res.status(404).json({ error: true, message: 'User profile not found.' });
+    }
+
+    // Check if the role is 'Admin'
+    if (profile.role !== 'Admin') {
+      return res.status(403).json({ error: true, message: 'Forbidden: Admin access required.' });
+    }
+
+    // If user is an admin, proceed to the next handler
+    next();
+  } catch (error) {
+    console.error('isAdmin middleware error:', error);
+    res.status(500).json({ error: true, message: 'Error checking admin status.' });
+  }
+};
+
 // Middleware for optional authentication (doesn't fail if no token)
 export const optionalAuth = async (req, res, next) => {
   try {
@@ -55,4 +86,4 @@ export const optionalAuth = async (req, res, next) => {
   }
 };
 
-export default { authenticateToken, optionalAuth };
+export default { authenticateToken, isAdmin, optionalAuth };

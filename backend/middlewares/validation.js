@@ -1,12 +1,14 @@
 // Request validation middleware
 export const validateSignup = (req, res, next) => {
-  const { email, password, firstName, lastName } = req.body;
+  // 1. Updated fields to match the controller
+  const { username, email, password, confirmPassword } = req.body;
   const errors = [];
 
+  // 2. Updated validation checks
+  if (!username) errors.push('Username is required');
   if (!email) errors.push('Email is required');
   if (!password) errors.push('Password is required');
-  if (!firstName) errors.push('First name is required');
-  if (!lastName) errors.push('Last name is required');
+  if (!confirmPassword) errors.push('Confirm password is required');
 
   // Email validation
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -17,6 +19,11 @@ export const validateSignup = (req, res, next) => {
   // Password validation
   if (password && password.length < 6) {
     errors.push('Password must be at least 6 characters long');
+  }
+  
+  // 3. Added password match validation
+  if (password && confirmPassword && password !== confirmPassword) {
+    errors.push('Passwords do not match');
   }
 
   if (errors.length > 0) {
