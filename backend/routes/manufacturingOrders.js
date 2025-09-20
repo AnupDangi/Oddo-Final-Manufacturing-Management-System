@@ -1,6 +1,6 @@
 import express from 'express';
 import ManufacturingOrderController from '../controllers/ManufacturingOrderController.js';
-import { authenticateToken, requireRole } from '../middleware/authMiddleware.js';
+import { authenticate as authenticateToken, authorize as requireRole } from '../middlewares/auth.js';
 
 const router = express.Router();
 
@@ -14,7 +14,7 @@ router.use(authenticateToken);
 
 // Create manufacturing order - Admin, Manager only
 router.post('/', 
-  requireRole(['admin', 'manager']), 
+  requireRole('Admin', 'Manufacturing Manager'), 
   ManufacturingOrderController.createManufacturingOrder
 );
 

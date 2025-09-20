@@ -1,4 +1,4 @@
-import ManufacturingOrderModel from '../models/ManufacturingOrderModel.js';
+import ManufacturingOrder from '../models/ManufacturingOrderModel.js';
 
 /**
  * Manufacturing Order Controller
@@ -15,19 +15,18 @@ class ManufacturingOrderController {
   static async createManufacturingOrder(req, res) {
     try {
       const { 
-        product_id, 
+        product, 
+        bom_version,
         quantity, 
         planned_start_date, 
-        planned_end_date, 
-        priority = 'medium', 
-        notes 
+        planned_end_date
       } = req.body;
 
       // Validation
-      if (!product_id || !quantity) {
+      if (!product || !bom_version || !quantity) {
         return res.status(400).json({
           success: false,
-          message: 'Product ID and quantity are required'
+          message: 'Product, BOM version, and quantity are required'
         });
       }
 
@@ -38,24 +37,16 @@ class ManufacturingOrderController {
         });
       }
 
-      if (!['low', 'medium', 'high', 'urgent'].includes(priority)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Priority must be low, medium, high, or urgent'
-        });
-      }
-
       const manufacturingOrderData = {
-        product_id,
+        product,
+        bom_version,
         quantity: parseFloat(quantity),
         planned_start_date,
         planned_end_date,
-        priority,
-        notes,
-        created_by: req.user.user_id
+        status: 'Draft'
       };
 
-      const manufacturingOrder = await ManufacturingOrderModel.create(manufacturingOrderData);
+      const manufacturingOrder = await ManufacturingOrder.create(manufacturingOrderData);
 
       res.status(201).json({
         success: true,
@@ -101,7 +92,7 @@ class ManufacturingOrderController {
         end_date
       };
 
-      const result = await ManufacturingOrderModel.findAll(options);
+      const result = await ManufacturingOrder.find(options);
 
       res.json({
         success: true,
@@ -128,7 +119,7 @@ class ManufacturingOrderController {
     try {
       const { id } = req.params;
 
-      const manufacturingOrder = await ManufacturingOrderModel.findById(parseInt(id));
+      const manufacturingOrder = await ManufacturingOrder.findById(id);
 
       if (!manufacturingOrder) {
         return res.status(404).json({
@@ -182,7 +173,7 @@ class ManufacturingOrderController {
         });
       }
 
-      const updatedManufacturingOrder = await ManufacturingOrderModel.update(parseInt(id), updateData);
+      const updatedManufacturingOrder = await ManufacturingOrder.findByIdAndUpdate(id, updateData, { new: true });
 
       if (!updatedManufacturingOrder) {
         return res.status(404).json({
@@ -230,7 +221,7 @@ class ManufacturingOrderController {
         });
       }
 
-      const updatedManufacturingOrder = await ManufacturingOrderModel.updateStatus(
+      const updatedManufacturingOrder = await ManufacturingOrder.findByIdAndUpdate(
         parseInt(id), 
         status, 
         req.user.user_id,
@@ -268,7 +259,7 @@ class ManufacturingOrderController {
     try {
       const { id } = req.params;
 
-      const requirements = await ManufacturingOrderModel.getMaterialRequirements(parseInt(id));
+      const requirements = await ManufacturingOrder.findById(id).populate('bom_version');
 
       if (!requirements) {
         return res.status(404).json({
@@ -301,7 +292,7 @@ class ManufacturingOrderController {
     try {
       const { id } = req.params;
 
-      const availability = await ManufacturingOrderModel.checkMaterialAvailability(parseInt(id));
+      const availability = await ManufacturingOrder.findById(id).populate('bom_version');
 
       if (!availability) {
         return res.status(404).json({
@@ -335,7 +326,7 @@ class ManufacturingOrderController {
       const { id } = req.params;
       const { work_center_assignments } = req.body;
 
-      const workOrders = await ManufacturingOrderModel.generateWorkOrders(
+      const workOrders = await ManufacturingOrder.findById(
         parseInt(id), 
         work_center_assignments,
         req.user.user_id
@@ -372,7 +363,7 @@ class ManufacturingOrderController {
         });
       }
 
-      const manufacturingOrders = await ManufacturingOrderModel.getByStatus(status);
+      const manufacturingOrders = await ManufacturingOrder.find({ status });
 
       res.json({
         success: true,
@@ -398,7 +389,22 @@ class ManufacturingOrderController {
     try {
       const { start_date, end_date } = req.query;
 
-      const statistics = await ManufacturingOrderModel.getStatistics(start_date, end_date);
+      const statistics = await ManufacturingOrder.aggregate([
+        {
+          $match: {
+            created_at: {
+              $gte: new Date(start_date),
+              $lte: new Date(end_date)
+            }
+          }
+        },
+        {
+          $group: {
+            _id: "$status",
+            count: { $sum: 1 }
+          }
+        }
+      ]);
 
       res.json({
         success: true,
@@ -425,7 +431,7 @@ class ManufacturingOrderController {
       const { id } = req.params;
       const { reason } = req.body;
 
-      const cancelledOrder = await ManufacturingOrderModel.cancel(
+      const cancelledOrder = await ManufacturingOrder.findByIdAndUpdate(
         parseInt(id), 
         req.user.user_id,
         reason
@@ -462,7 +468,11 @@ class ManufacturingOrderController {
     try {
       const { search, status, limit = 50 } = req.query;
 
-      const manufacturingOrders = await ManufacturingOrderModel.searchForDropdown(search, status, parseInt(limit));
+      const query = {};
+      if (status) query.status = status;
+      if (search) query.product = { $regex: search, $options: 'i' };
+      
+      const manufacturingOrders = await ManufacturingOrder.find(query).limit(parseInt(limit));
 
       res.json({
         success: true,
