@@ -22,16 +22,16 @@ export const testConnection = async () => {
     console.log('🔗 Attempting to connect to Supabase database...');
     
     const { data, error } = await supabase
-      .from('profiles')
+      .from('users')
       .select('count', { count: 'exact', head: true });
     
     if (error) {
       console.error('❌ Database connection failed:', error.message);
-      console.log('📋 Available tables will be checked...');
+      console.log('📋 Checking if users table exists...');
       
       // Try a simpler connection test
       const { data: simpleTest, error: simpleError } = await supabase
-        .from('profiles')
+        .from('users')
         .select('*')
         .limit(1);
         
