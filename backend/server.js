@@ -8,6 +8,11 @@ import { testConnection } from './config/db.js';
 const app = express()
 const PORT = process.env.PORT
 
+
+import authRoutes from './routes/auth.js';
+app.use('/api/v1/auth', authRoutes);
+
+
 const startServer = async () => {
   try {
     // Test Supabase connection
