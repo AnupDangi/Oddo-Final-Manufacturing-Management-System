@@ -4,13 +4,18 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
 import { testConnection } from './config/db.js';
-
+import userRoutes from './routes/auth.js';
 const app = express()
 const PORT = process.env.PORT
 app.use(express.json())
 
-import authRoutes from './routes/auth.js';
-app.use('/api/v1/auth', authRoutes);
+app.use('/api/users',userRoutes)
+
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
 
 
 const startServer = async () => {
