@@ -8,6 +8,8 @@ import productRoutes from './routes/products.js';
 import  database from './config/database.js';
 import bomRoutes from './routes/boms.js';
 import stockLedgerRoutes from './routes/stockLedger.js';
+import workOrderRoutes from './routes/workOrders.js';
+import workCenterRoutes from './routes/workCenters.js';
 
 // import authRoutes from './routes/auth.js';
 // import userRoutes from './routes/users.js';
@@ -26,6 +28,8 @@ app.use('/api/auth',userRoutes)
 app.use('/api/products',productRoutes);
 app.use('/api/v1', bomRoutes);
 app.use('/api/stock', stockLedgerRoutes);
+app.use('/api/work-orders', workOrderRoutes);
+app.use('/api/work-centers', workCenterRoutes)
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
