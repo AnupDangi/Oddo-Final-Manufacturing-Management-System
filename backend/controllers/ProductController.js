@@ -1,423 +1,277 @@
-import ProductModel from '../models/ProductModel.js';
+import Product from '../models/ProductModel.js';
 
-/**
- * Product Controller for Manufacturing Management System
- * Handles CRUD operations for products (raw materials, finished goods, semi-finished)
- */
+export class ProductController {
+    // Create a new product
+    static async createProduct(req, res) {
+        try {
+            const { 
+                name, 
+                description, 
+                sku, 
+                unit_of_measure, 
+                category,
+                reorder_point,
+                standard_cost
+            } = req.body;
 
-class ProductController {
-  /**
-   * Create a new product
-   * @route POST /api/v1/products
-   * @access Private (Admin/Manager)
-   */
-  static async createProduct(req, res) {
-    try {
-      const { name, description, type, unit, reorder_level, cost_price, selling_price, category } = req.body;
+            // Validate required fields
+            if (!name || !sku || !unit_of_measure || !category || !reorder_point || !standard_cost) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Please provide all required fields'
+                });
+            }
 
-      // Validate required fields
-      if (!name || !type || !unit) {
-        return res.status(400).json({
-          success: false,
-          message: 'Name, type, and unit are required'
-        });
-      }
+            // Check if SKU already exists
+            const existingProduct = await Product.findOne({ sku });
+            if (existingProduct) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Product with this SKU already exists'
+                });
+            }
 
-      // Validate product type
-      if (!['raw_material', 'finished_good', 'semi_finished'].includes(type)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Type must be raw_material, finished_good, or semi_finished'
-        });
-      }
+            const product = new Product({
+                name,
+                description,
+                sku,
+                unit_of_measure,
+                category,
+                current_stock: 0,
+                reorder_point,
+                standard_cost,
+                is_active: true
+            });
 
-      const product = await ProductModel.create({
-        name: name.trim(),
-        description,
-        type,
-        unit,
-        reorder_level: parseFloat(reorder_level) || 0,
-        cost_price: parseFloat(cost_price) || 0,
-        selling_price: parseFloat(selling_price) || 0,
-        category
-      });
+            await product.save();
 
-      res.status(201).json({
-        success: true,
-        message: 'Product created successfully',
-        data: product
-      });
-
-    } catch (error) {
-      console.error('Create product error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to create product',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
-    }
-  }
-
-  /**
-   * Get all products with filtering and pagination
-   * @route GET /api/v1/products
-   * @access Private (All authenticated users)
-   */
-  static async getAllProducts(req, res) {
-    try {
-      const {
-        page = 1,
-        limit = 20,
-        type,
-        category,
-        is_active = true,
-        search,
-        low_stock = false
-      } = req.query;
-
-      const result = await ProductModel.findAll({
-        page: parseInt(page),
-        limit: parseInt(limit),
-        type,
-        category,
-        is_active: is_active === 'true',
-        search,
-        low_stock: low_stock === 'true'
-      });
-
-      res.json({
-        success: true,
-        data: result.data,
-        pagination: result.pagination
-      });
-
-    } catch (error) {
-      console.error('Get all products error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to retrieve products',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
-    }
-  }
-
-  /**
-   * Get product by ID
-   * @route GET /api/v1/products/:productId
-   * @access Private (All authenticated users)
-   */
-  static async getProductById(req, res) {
-    try {
-      const { productId } = req.params;
-
-      if (!productId || isNaN(productId)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Valid product ID is required'
-        });
-      }
-
-      const product = await ProductModel.findById(parseInt(productId));
-
-      if (!product) {
-        return res.status(404).json({
-          success: false,
-          message: 'Product not found'
-        });
-      }
-
-      res.json({
-        success: true,
-        data: product
-      });
-
-    } catch (error) {
-      console.error('Get product by ID error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to retrieve product',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
-    }
-  }
-
-  /**
-   * Update product
-   * @route PUT /api/v1/products/:productId
-   * @access Private (Admin/Manager)
-   */
-  static async updateProduct(req, res) {
-    try {
-      const { productId } = req.params;
-      const { name, description, unit, reorder_level, cost_price, selling_price, category, is_active } = req.body;
-
-      if (!productId || isNaN(productId)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Valid product ID is required'
-        });
-      }
-
-      // Validate name if provided
-      if (name && name.trim().length < 2) {
-        return res.status(400).json({
-          success: false,
-          message: 'Product name must be at least 2 characters long'
-        });
-      }
-
-      const updateData = {};
-      if (name !== undefined) updateData.name = name.trim();
-      if (description !== undefined) updateData.description = description;
-      if (unit !== undefined) updateData.unit = unit;
-      if (reorder_level !== undefined) updateData.reorder_level = parseFloat(reorder_level);
-      if (cost_price !== undefined) updateData.cost_price = parseFloat(cost_price);
-      if (selling_price !== undefined) updateData.selling_price = parseFloat(selling_price);
-      if (category !== undefined) updateData.category = category;
-      if (is_active !== undefined) updateData.is_active = is_active;
-
-      const product = await ProductModel.update(parseInt(productId), updateData);
-
-      res.json({
-        success: true,
-        message: 'Product updated successfully',
-        data: product
-      });
-
-    } catch (error) {
-      console.error('Update product error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to update product',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
-    }
-  }
-
-  /**
-   * Delete product (soft delete)
-   * @route DELETE /api/v1/products/:productId
-   * @access Private (Admin only)
-   */
-  static async deleteProduct(req, res) {
-    try {
-      const { productId } = req.params;
-
-      if (!productId || isNaN(productId)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Valid product ID is required'
-        });
-      }
-
-      const product = await ProductModel.softDelete(parseInt(productId));
-
-      res.json({
-        success: true,
-        message: 'Product deactivated successfully',
-        data: product
-      });
-
-    } catch (error) {
-      console.error('Delete product error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to deactivate product',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
-    }
-  }
-
-  /**
-   * Get products by type
-   * @route GET /api/v1/products/type/:type
-   * @access Private (All authenticated users)
-   */
-  static async getProductsByType(req, res) {
-    try {
-      const { type } = req.params;
-
-      if (!['raw_material', 'finished_good', 'semi_finished'].includes(type)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid product type. Must be raw_material, finished_good, or semi_finished'
-        });
-      }
-
-      const products = await ProductModel.getByType(type);
-
-      res.json({
-        success: true,
-        data: products
-      });
-
-    } catch (error) {
-      console.error('Get products by type error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to retrieve products by type',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
-    }
-  }
-
-  /**
-   * Get current stock for a product
-   * @route GET /api/v1/products/:productId/stock
-   * @access Private (All authenticated users)
-   */
-  static async getProductStock(req, res) {
-    try {
-      const { productId } = req.params;
-
-      if (!productId || isNaN(productId)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Valid product ID is required'
-        });
-      }
-
-      const stockInfo = await ProductModel.getCurrentStock(parseInt(productId));
-
-      res.json({
-        success: true,
-        data: stockInfo
-      });
-
-    } catch (error) {
-      console.error('Get product stock error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to retrieve product stock',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
-    }
-  }
-
-  /**
-   * Check stock availability for multiple products
-   * @route POST /api/v1/products/check-stock
-   * @access Private (All authenticated users)
-   */
-  static async checkStockAvailability(req, res) {
-    try {
-      const { requirements } = req.body;
-
-      if (!requirements || !Array.isArray(requirements) || requirements.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Requirements array is required with product_id and required_quantity'
-        });
-      }
-
-      // Validate requirements format
-      for (const req_item of requirements) {
-        if (!req_item.product_id || !req_item.required_quantity || req_item.required_quantity <= 0) {
-          return res.status(400).json({
-            success: false,
-            message: 'Each requirement must have product_id and positive required_quantity'
-          });
+            res.status(201).json({
+                success: true,
+                message: 'Product created successfully',
+                data: product
+            });
+        } catch (error) {
+            console.error('Create product error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error creating product'
+            });
         }
-      }
-
-      const stockCheck = await ProductModel.checkStockAvailability(requirements);
-
-      res.json({
-        success: true,
-        data: stockCheck
-      });
-
-    } catch (error) {
-      console.error('Check stock availability error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to check stock availability',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
     }
-  }
 
-  /**
-   * Get low stock products
-   * @route GET /api/v1/products/low-stock
-   * @access Private (All authenticated users)
-   */
-  static async getLowStockProducts(req, res) {
-    try {
-      const products = await ProductModel.getLowStockProducts();
+    // Get all products
+    static async getAllProducts(req, res) {
+        try {
+            const { category, search, active } = req.query;
+            
+            let query = {};
+            
+            // Filter by category if provided
+            if (category) {
+                query.category = category;
+            }
 
-      res.json({
-        success: true,
-        data: products,
-        count: products.length
-      });
+            // Filter by active status if provided
+            if (active !== undefined) {
+                query.is_active = active === 'true';
+            }
 
-    } catch (error) {
-      console.error('Get low stock products error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to retrieve low stock products',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
+            // Search in name or SKU
+            if (search) {
+                query.$or = [
+                    { name: { $regex: search, $options: 'i' } },
+                    { sku: { $regex: search, $options: 'i' } }
+                ];
+            }
+
+            const products = await Product.find(query)
+                .sort({ created_at: -1 });
+
+            res.status(200).json({
+                success: true,
+                count: products.length,
+                data: products
+            });
+        } catch (error) {
+            console.error('Get products error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error retrieving products'
+            });
+        }
     }
-  }
 
-  /**
-   * Get product statistics
-   * @route GET /api/v1/products/statistics
-   * @access Private (Manager/Admin)
-   */
-  static async getProductStatistics(req, res) {
-    try {
-      const stats = await ProductModel.getStatistics();
+    // Get single product
+    static async getProductById(req, res) {
+        try {
+            const product = await Product.findById(req.params.id);
 
-      res.json({
-        success: true,
-        data: stats
-      });
+            if (!product) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Product not found'
+                });
+            }
 
-    } catch (error) {
-      console.error('Get product statistics error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to retrieve product statistics',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
+            res.status(200).json({
+                success: true,
+                data: product
+            });
+        } catch (error) {
+            console.error('Get product error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error retrieving product'
+            });
+        }
     }
-  }
 
-  /**
-   * Search products for dropdown/autocomplete
-   * @route GET /api/v1/products/search
-   * @access Private (All authenticated users)
-   */
-  static async searchProducts(req, res) {
-    try {
-      const { q: searchTerm, type } = req.query;
+    // Update product
+    static async updateProduct(req, res) {
+        try {
+            const {
+                name,
+                description,
+                unit_of_measure,
+                category,
+                reorder_point,
+                standard_cost,
+                is_active
+            } = req.body;
 
-      if (type && !['raw_material', 'finished_good', 'semi_finished'].includes(type)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid type filter'
-        });
-      }
+            let product = await Product.findById(req.params.id);
 
-      const products = await ProductModel.searchForDropdown(searchTerm, type);
+            if (!product) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Product not found'
+                });
+            }
 
-      res.json({
-        success: true,
-        data: products
-      });
+            product.name = name || product.name;
+            product.description = description || product.description;
+            product.unit_of_measure = unit_of_measure || product.unit_of_measure;
+            product.category = category || product.category;
+            product.reorder_point = reorder_point || product.reorder_point;
+            product.standard_cost = standard_cost || product.standard_cost;
+            product.is_active = is_active !== undefined ? is_active : product.is_active;
 
-    } catch (error) {
-      console.error('Search products error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to search products',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
+            await product.save();
+
+            res.status(200).json({
+                success: true,
+                message: 'Product updated successfully',
+                data: product
+            });
+        } catch (error) {
+            console.error('Update product error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error updating product'
+            });
+        }
     }
-  }
+
+    // Update stock
+    static async updateStock(req, res) {
+        try {
+            const { quantity_change } = req.body;
+
+            if (quantity_change === undefined) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Please provide quantity change'
+                });
+            }
+
+            const product = await Product.findById(req.params.id);
+
+            if (!product) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Product not found'
+                });
+            }
+
+            const newStock = product.current_stock + quantity_change;
+
+            if (newStock < 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Insufficient stock'
+                });
+            }
+
+            product.current_stock = newStock;
+            await product.save();
+
+            res.status(200).json({
+                success: true,
+                message: 'Stock updated successfully',
+                data: {
+                    id: product._id,
+                    sku: product.sku,
+                    current_stock: product.current_stock
+                }
+            });
+        } catch (error) {
+            console.error('Update stock error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error updating stock'
+            });
+        }
+    }
+
+    // Delete product (soft delete)
+    static async deleteProduct(req, res) {
+        try {
+            const product = await Product.findById(req.params.id);
+
+            if (!product) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Product not found'
+                });
+            }
+
+            product.is_active = false;
+            await product.save();
+
+            res.status(200).json({
+                success: true,
+                message: 'Product deleted successfully'
+            });
+        } catch (error) {
+            console.error('Delete product error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error deleting product'
+            });
+        }
+    }
+
+    // Get low stock products
+    static async getLowStockProducts(req, res) {
+        try {
+            const products = await Product.find({
+                is_active: true,
+                $expr: {
+                    $lte: ['$current_stock', '$reorder_point']
+                }
+            });
+
+            res.status(200).json({
+                success: true,
+                count: products.length,
+                data: products
+            });
+        } catch (error) {
+            console.error('Get low stock products error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error retrieving low stock products'
+            });
+        }
+    }
 }
-
-export default ProductController;
