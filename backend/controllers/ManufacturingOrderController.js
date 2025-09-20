@@ -1,4 +1,6 @@
 import ManufacturingOrder from '../models/ManufacturingOrderModel.js';
+import BOM from '../models/BOMModel.js';
+import Product from '../models/ProductModel.js';
 
 /**
  * Manufacturing Order Controller
@@ -16,17 +18,16 @@ class ManufacturingOrderController {
     try {
       const { 
         product, 
-        bom_version,
         quantity, 
         planned_start_date, 
         planned_end_date
       } = req.body;
 
       // Validation
-      if (!product || !bom_version || !quantity) {
+      if (!product || !quantity) {
         return res.status(400).json({
           success: false,
-          message: 'Product, BOM version, and quantity are required'
+          message: 'Product and quantity are required'
         });
       }
 
@@ -37,9 +38,21 @@ class ManufacturingOrderController {
         });
       }
 
+      // Automatically get the active BOM for the product
+      const bom = await BOM.getActiveBOM(product);
+      if (!bom) {
+        return res.status(404).json({
+          success: false,
+          message: 'No active BOM found for this product. Please create a BOM first.'
+        });
+      }
+
+      // Calculate cost for the manufacturing order
+      const costCalculation = await BOM.calculateBOMCost(bom._id, quantity);
+
       const manufacturingOrderData = {
         product,
-        bom_version,
+        bom_version: bom._id,
         quantity: parseFloat(quantity),
         planned_start_date,
         planned_end_date,
@@ -48,13 +61,129 @@ class ManufacturingOrderController {
 
       const manufacturingOrder = await ManufacturingOrder.create(manufacturingOrderData);
 
+      // Return detailed response with BOM information
       res.status(201).json({
         success: true,
         message: 'Manufacturing order created successfully',
-        data: manufacturingOrder
+        data: {
+          manufacturing_order: manufacturingOrder,
+          bom_details: {
+            bom_id: bom._id,
+            version: bom.version,
+            components: costCalculation.components,
+            total_material_cost: costCalculation.total_material_cost
+          }
+        }
       });
     } catch (error) {
       console.error('Create manufacturing order error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to create manufacturing order',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Create a new manufacturing order by product search (frontend friendly)
+   * POST /api/manufacturing-orders/by-product-search
+   * Required: product_search (name or SKU), quantity
+   * Access: Admin, Manager
+   */
+  static async createByProductSearch(req, res) {
+    try {
+      const { 
+        product_search, 
+        quantity, 
+        planned_start_date, 
+        planned_end_date
+      } = req.body;
+
+      // Validation
+      if (!product_search || !quantity) {
+        return res.status(400).json({
+          success: false,
+          message: 'Product search term and quantity are required'
+        });
+      }
+
+      if (quantity <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Quantity must be greater than 0'
+        });
+      }
+
+      // Search for the product by name or SKU
+      const product = await Product.findOne({
+        $or: [
+          { name: { $regex: product_search, $options: 'i' } },
+          { sku: { $regex: product_search, $options: 'i' } }
+        ],
+        is_active: true
+      });
+
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          message: `No product found with name or SKU containing: ${product_search}`
+        });
+      }
+
+      // Check if it's a finished good (can be manufactured)
+      if (product.category !== 'Finished Good') {
+        return res.status(400).json({
+          success: false,
+          message: `Product "${product.name}" is a ${product.category}. Only Finished Goods can be manufactured.`
+        });
+      }
+
+      // Automatically get the active BOM for the product
+      const bom = await BOM.getActiveBOM(product._id);
+      if (!bom) {
+        return res.status(404).json({
+          success: false,
+          message: `No active BOM found for product "${product.name}". Please create a BOM first.`
+        });
+      }
+
+      // Calculate cost for the manufacturing order
+      const costCalculation = await BOM.calculateBOMCost(bom._id, quantity);
+
+      const manufacturingOrderData = {
+        product: product._id,
+        bom_version: bom._id,
+        quantity: parseFloat(quantity),
+        planned_start_date,
+        planned_end_date,
+        status: 'Draft'
+      };
+
+      const manufacturingOrder = await ManufacturingOrder.create(manufacturingOrderData);
+
+      // Return detailed response with product and BOM information
+      res.status(201).json({
+        success: true,
+        message: 'Manufacturing order created successfully',
+        data: {
+          manufacturing_order: manufacturingOrder,
+          product_details: {
+            _id: product._id,
+            name: product.name,
+            sku: product.sku,
+            category: product.category
+          },
+          bom_details: {
+            bom_id: bom._id,
+            version: bom.version,
+            components: costCalculation.components,
+            total_material_cost: costCalculation.total_material_cost
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Create manufacturing order by search error:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to create manufacturing order',

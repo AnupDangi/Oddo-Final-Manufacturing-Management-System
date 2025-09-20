@@ -1,4 +1,4 @@
-import BOMModel from '../models/BOMModel.js';
+import BOM from '../models/BOMModel.js';
 
 /**
  * BOM (Bill of Materials) Controller for Manufacturing Management System
@@ -13,13 +13,13 @@ class BOMController {
    */
   static async createBOM(req, res) {
     try {
-      const { product_id, version, components, operations, description, is_default } = req.body;
+      const { product, version, components, description, is_default } = req.body;
 
       // Validate required fields
-      if (!product_id || !components || !operations) {
+      if (!product || !components) {
         return res.status(400).json({
           success: false,
-          message: 'Product ID, components, and operations are required'
+          message: 'Product ID and components are required'
         });
       }
 
@@ -30,38 +30,20 @@ class BOMController {
         });
       }
 
-      if (!Array.isArray(operations) || operations.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Operations must be a non-empty array'
-        });
-      }
-
       // Validate components structure
       for (const component of components) {
-        if (!component.product_id || !component.quantity || component.quantity <= 0) {
+        if (!component.component_product || !component.quantity_required || component.quantity_required <= 0) {
           return res.status(400).json({
             success: false,
-            message: 'Each component must have product_id and positive quantity'
+            message: 'Each component must have component_product and positive quantity_required'
           });
         }
       }
 
-      // Validate operations structure
-      for (const operation of operations) {
-        if (!operation.operation_name || !operation.duration_minutes || operation.duration_minutes <= 0) {
-          return res.status(400).json({
-            success: false,
-            message: 'Each operation must have operation_name and positive duration_minutes'
-          });
-        }
-      }
-
-      const bom = await BOMModel.create({
-        product_id: parseInt(product_id),
+      const bom = await BOM.create({
+        product,
         version: version || '1.0',
         components,
-        operations,
         description,
         is_default: is_default || false
       });

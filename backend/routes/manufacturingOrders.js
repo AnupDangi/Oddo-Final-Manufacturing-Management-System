@@ -1,6 +1,6 @@
 import express from 'express';
 import ManufacturingOrderController from '../controllers/ManufacturingOrderController.js';
-import { authenticate as authenticateToken, authorize as requireRole } from '../middlewares/auth.js';
+import { auth as authenticateToken, authorize as requireRole } from '../middlewares/auth.js';
 
 const router = express.Router();
 
@@ -16,6 +16,12 @@ router.use(authenticateToken);
 router.post('/', 
   requireRole('Admin', 'Manufacturing Manager'), 
   ManufacturingOrderController.createManufacturingOrder
+);
+
+// Create manufacturing order by product search (frontend friendly) - Admin, Manager only
+router.post('/by-product-search', 
+  requireRole('Admin', 'Manufacturing Manager'), 
+  ManufacturingOrderController.createByProductSearch
 );
 
 // Get all manufacturing orders with filtering - Admin, Manager, Operator

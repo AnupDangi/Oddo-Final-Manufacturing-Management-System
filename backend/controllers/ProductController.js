@@ -1,4 +1,5 @@
 import Product from '../models/ProductModel.js';
+import BOM from '../models/BOMModel.js';
 
 export class ProductController {
     // Create a new product
@@ -271,6 +272,89 @@ export class ProductController {
             res.status(500).json({
                 success: false,
                 message: 'Error retrieving low stock products'
+            });
+        }
+    }
+
+    // Search products with BOM and pricing information
+    static async searchProductsWithBOM(req, res) {
+        try {
+            const { search, category } = req.query;
+            
+            // Build search query
+            const query = { is_active: true };
+            
+            if (search) {
+                query.$or = [
+                    { name: { $regex: search, $options: 'i' } },
+                    { sku: { $regex: search, $options: 'i' } },
+                    { description: { $regex: search, $options: 'i' } }
+                ];
+            }
+            
+            if (category) {
+                query.category = category;
+            }
+
+            const products = await Product.find(query).limit(20);
+            
+            // For each product, get BOM and calculate cost
+            const productsWithBOM = await Promise.all(
+                products.map(async (product) => {
+                    try {
+                        const bom = await BOM.getActiveBOM(product._id);
+                        let bomDetails = null;
+                        
+                        if (bom) {
+                            const costCalculation = await BOM.calculateBOMCost(bom._id, 1);
+                            bomDetails = {
+                                bom_id: bom._id,
+                                version: bom.version,
+                                components: costCalculation.components,
+                                total_material_cost: costCalculation.total_material_cost,
+                                estimated_selling_price: costCalculation.total_material_cost * 1.3 // 30% markup
+                            };
+                        }
+                        
+                        return {
+                            _id: product._id,
+                            name: product.name,
+                            sku: product.sku,
+                            description: product.description,
+                            category: product.category,
+                            unit_of_measure: product.unit_of_measure,
+                            standard_cost: product.standard_cost,
+                            current_stock: product.current_stock,
+                            bom_details: bomDetails
+                        };
+                    } catch (error) {
+                        console.error(`Error processing product ${product._id}:`, error);
+                        return {
+                            _id: product._id,
+                            name: product.name,
+                            sku: product.sku,
+                            description: product.description,
+                            category: product.category,
+                            unit_of_measure: product.unit_of_measure,
+                            standard_cost: product.standard_cost,
+                            current_stock: product.current_stock,
+                            bom_details: null
+                        };
+                    }
+                })
+            );
+
+            res.json({
+                success: true,
+                data: productsWithBOM,
+                count: productsWithBOM.length
+            });
+
+        } catch (error) {
+            console.error('Search products with BOM error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error searching products'
             });
         }
     }
