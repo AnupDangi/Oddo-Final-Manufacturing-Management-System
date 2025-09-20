@@ -8,12 +8,15 @@ import WorkOrdersComponent from './WorkOrdersComponent'
 import WorkCenterTableComponent from './WorkCenterTableComponent'
 import StockLedgerTableComponent from './StockLedgerTableComponent'
 import BOMTableComponent from './BOMTableComponent'
+import ManufacturingOrderForm from './components/ManufacturingOrderForm'
+import ManufacturingOrderConfirmed from './components/ManufacturingOrderConfirmed'
 import { useAuth } from './context/AuthContext'
 
 function App() {
   const [currentView, setCurrentView] = useState('login'); // Start with login by default
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [menuState, setMenuState] = useState({ master: false, profile: false });
+  const [manufacturingOrderData, setManufacturingOrderData] = useState(null);
   const { isAuthenticated, logout } = useAuth();
 
   // Check authentication status on app load or when auth state changes
@@ -26,7 +29,24 @@ function App() {
     }
   }, [isAuthenticated, currentView]);
 
-  const handleNavigation = (view) => {
+  const handleMenuStateChange = (menuType, isOpen) => {
+    setMenuState(prev => ({
+      ...prev,
+      [menuType]: isOpen
+    }));
+  };
+
+  // Update handleNavigation to handle passing data between views
+  const handleNavigation = (view, data = null) => {
+    console.log('Navigation to', view, 'with data:', data);
+    
+    // If data is provided, store it
+    if (data) {
+      if (view === 'manufacturing-order-confirmed') {
+        setManufacturingOrderData(data.orderData);
+      }
+    }
+    
     // Handle logout
     if (view === 'logout') {
       logout();
@@ -54,19 +74,16 @@ function App() {
     }, 150);
   };
 
-  const handleMenuStateChange = (menuType, isOpen) => {
-    setMenuState(prev => ({
-      ...prev,
-      [menuType]: isOpen
-    }));
-  };
-
   const renderCurrentView = () => {
     switch (currentView) {
       case 'login':
         return <LoginComponent onNavigate={handleNavigation} />;
       case 'dashboard':
         return <DashboardComponent onNavigate={handleNavigation} onMenuStateChange={handleMenuStateChange} />;
+      case 'manufacturing-order-form':
+        return <ManufacturingOrderForm onNavigate={handleNavigation} />;
+      case 'manufacturing-order-confirmed':
+        return <ManufacturingOrderConfirmed onNavigate={handleNavigation} orderData={manufacturingOrderData} />;
       case 'work-orders':
         return <WorkOrdersComponent onNavigate={handleNavigation} onMenuStateChange={handleMenuStateChange} />;
       case 'work-center':

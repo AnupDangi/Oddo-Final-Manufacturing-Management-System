@@ -10,7 +10,6 @@ import {
 } from 'lucide-react';
 import MasterMenuNavbar from './components/MasterMenuNavbar';
 
-
 const StockLedgerTableComponent = ({ onNavigate }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -294,7 +293,8 @@ const StockLedgerTableComponent = ({ onNavigate }) => {
               </button>
             </div>
             
-            {/* Profile Removed */}
+            {/* Profile */}
+            <ProfileNavbar onNavigate={onNavigate} />
           </div>
         </div>
       </div>

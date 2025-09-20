@@ -9,7 +9,7 @@ import {
   FileText
 } from 'lucide-react';
 import MasterMenuNavbar from './components/MasterMenuNavbar';
-
+import ProfileNavbar from './components/ProfileNavbar';
 
 const BOMTableComponent = ({ onNavigate }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -394,7 +394,8 @@ const BOMTableComponent = ({ onNavigate }) => {
               </button>
             </div>
             
-            {/* Profile Removed */}
+            {/* Profile */}
+            <ProfileNavbar onNavigate={onNavigate} />
           </div>
         </div>
       </div>
