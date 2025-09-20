@@ -1,89 +1,141 @@
-import { supabase } from '../config/db.js';
+import jwt from 'jsonwebtoken';
+import User from '../models/UserModel.js';
 
-// Middleware to verify JWT token from Supabase
-export const authenticateToken = async (req, res, next) => {
-  try {
-    const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+export const auth = async (req, res, next) => {
+    try {
+        // Check for token in headers
+        const token = req.header('Authorization')?.replace('Bearer ', '');
 
-    if (!token) {
-      return res.status(401).json({
-        error: true,
-        message: 'Access token required'
-      });
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                message: 'No token provided, authorization denied'
+            });
+        }
+
+        try {
+            // Verify token
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            
+            // Find user by id from decoded token
+            const user = await User.findById(decoded.id).select('-password_hash');
+
+            if (!user) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'User not found'
+                });
+            }
+
+            if (!user.is_active) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'User account is inactive'
+                });
+            }
+
+            // Add user to request object
+            req.user = user;
+            next();
+
+        } catch (error) {
+            return res.status(401).json({
+                success: false,
+                message: 'Token is invalid'
+            });
+        }
+
+    } catch (error) {
+        console.error('Auth middleware error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server Error'
+        });
     }
-
-    // Verify token with Supabase
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-
-    if (error || !user) {
-      return res.status(403).json({
-        error: true,
-        message: 'Invalid or expired token'
-      });
-    }
-
-    // Add user to request object
-    req.user = user;
-    next();
-  } catch (error) {
-    console.error('Auth middleware error:', error);
-    res.status(500).json({
-      error: true,
-      message: 'Authentication service error'
-    });
-  }
 };
 
-// --- NEW MIDDLEWARE ---
-// Middleware to check if the user is an admin
-export const isAdmin = async (req, res, next) => {
-  try {
-    // This middleware must run AFTER authenticateToken
-    const userId = req.user.id;
+// Middleware for role-based authorization
+export const authorize = (...roles) => {
+    return (req, res, next) => {
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                message: 'Authorization denied'
+            });
+        }
 
-    // Query the profiles table to get the user's role
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', userId)
-      .single();
+        if (!roles.includes(req.user.role)) {
+            return res.status(403).json({
+                success: false,
+                message: `User role ${req.user.role} is not authorized to access this route`
+            });
+        }
 
-    if (error || !profile) {
-      return res.status(404).json({ error: true, message: 'User profile not found.' });
-    }
-
-    // Check if the role is 'Admin'
-    if (profile.role !== 'Admin') {
-      return res.status(403).json({ error: true, message: 'Forbidden: Admin access required.' });
-    }
-
-    // If user is an admin, proceed to the next handler
-    next();
-  } catch (error) {
-    console.error('isAdmin middleware error:', error);
-    res.status(500).json({ error: true, message: 'Error checking admin status.' });
-  }
+        next();
+    };
 };
 
-// Middleware for optional authentication (doesn't fail if no token)
-export const optionalAuth = async (req, res, next) => {
-  try {
-    const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (token) {
-      const { data: { user }, error } = await supabase.auth.getUser(token);
-      if (!error && user) {
-        req.user = user;
-      }
+// Optional: Middleware to check if user is admin
+export const isAdmin = (req, res, next) => {
+    if (!req.user || req.user.role !== 'Admin') {
+        return res.status(403).json({
+            success: false,
+            message: 'Admin access required'
+        });
     }
-    
     next();
-  } catch (error) {
-    console.error('Optional auth error:', error);
-    next(); // Continue without auth
-  }
 };
 
-export default { authenticateToken, isAdmin, optionalAuth };
+// Optional: Middleware to check if user is a manager
+export const isManager = (req, res, next) => {
+    if (!req.user || req.user.role !== 'Manufacturing Manager') {
+        return res.status(403).json({
+            success: false,
+            message: 'Manager access required'
+        });
+    }
+    next();
+};
+
+// Optional: Middleware to check if user owns the resource or is admin
+export const isOwnerOrAdmin = (modelName) => {
+    return async (req, res, next) => {
+        try {
+            if (!req.user) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Authorization denied'
+                });
+            }
+
+            const resourceId = req.params.id;
+            const Model = mongoose.model(modelName);
+            const resource = await Model.findById(resourceId);
+
+            if (!resource) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Resource not found'
+                });
+            }
+
+            if (
+                resource.user?.toString() !== req.user._id.toString() && 
+                req.user.role !== 'Admin'
+            ) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Not authorized to access this resource'
+                });
+            }
+
+            next();
+        } catch (error) {
+            console.error('isOwnerOrAdmin middleware error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Server Error'
+            });
+        }
+    };
+};

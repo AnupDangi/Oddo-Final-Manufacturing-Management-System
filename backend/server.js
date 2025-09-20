@@ -3,13 +3,8 @@ import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
-<<<<<<< HEAD
-import { testConnection } from './config/db.js';
 import userRoutes from './routes/auth.js';
-const app = express()
-const PORT = process.env.PORT
-app.use(express.json())
-=======
+
 import  database from './config/database.js';
 // import authRoutes from './routes/auth.js';
 // import userRoutes from './routes/users.js';
@@ -20,15 +15,11 @@ import  database from './config/database.js';
 // import workOrderRoutes from './routes/workOrders.js';
 // import stockLedgerRoutes from './routes/stockLedger.js';
 // import dashboardRoutes from './routes/dashboard.js';
->>>>>>> fb470a739f9afa552526dd9a1eb9239587f51669
 
-app.use('/api/users',userRoutes)
-
-<<<<<<< HEAD
-=======
-const app = express();
-const PORT = process.env.PORT || 5000;
-
+const app = express()
+const PORT = process.env.PORT
+app.use(express.json())
+app.use('/api/auth',userRoutes)
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
@@ -44,7 +35,6 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // app.use('/api/v1/work-orders', workOrderRoutes);
 // app.use('/api/v1/stock-ledger', stockLedgerRoutes);
 // app.use('/api/v1/dashboard', dashboardRoutes);
->>>>>>> fb470a739f9afa552526dd9a1eb9239587f51669
 
 // Health check endpoint
 app.get('/health', (req, res) => {
