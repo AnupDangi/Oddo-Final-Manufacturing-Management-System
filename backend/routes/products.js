@@ -15,6 +15,12 @@ router.post(
     authorize('Admin', 'Inventory Manager'), 
     ProductController.createProduct
 );
+router.post(
+    '/bulk', 
+    auth, 
+    authorize('Admin', 'Inventory Manager'), 
+    ProductController.createMultipleProducts
+);
 
 router.put(
     '/:id', // Changed from '/products/:id' to '/:id'

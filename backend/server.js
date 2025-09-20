@@ -6,6 +6,9 @@ import dotenv from 'dotenv';
 import userRoutes from './routes/auth.js';
 import productRoutes from './routes/products.js';
 import  database from './config/database.js';
+import bomRoutes from './routes/boms.js';
+import stockLedgerRoutes from './routes/stockLedger.js';
+
 // import authRoutes from './routes/auth.js';
 // import userRoutes from './routes/users.js';
 // import productRoutes from './routes/products.js';
@@ -21,6 +24,8 @@ const PORT = process.env.PORT
 app.use(express.json())
 app.use('/api/auth',userRoutes)
 app.use('/api/products',productRoutes);
+app.use('/api/v1', bomRoutes);
+app.use('/api/stock', stockLedgerRoutes);
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
