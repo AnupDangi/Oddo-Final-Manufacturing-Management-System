@@ -9,7 +9,7 @@ import {
   Package
 } from 'lucide-react';
 import MasterMenuNavbar from './components/MasterMenuNavbar';
-import ProfileNavbar from './components/ProfileNavbar';
+
 
 const StockLedgerTableComponent = ({ onNavigate }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -294,8 +294,7 @@ const StockLedgerTableComponent = ({ onNavigate }) => {
               </button>
             </div>
             
-            {/* Profile */}
-            <ProfileNavbar onNavigate={onNavigate} />
+            {/* Profile Removed */}
           </div>
         </div>
       </div>

@@ -1,39 +1,83 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, Factory, Mail, Lock } from 'lucide-react';
+import { useAuth } from './context/AuthContext';
 
 const LoginComponent = ({ onNavigate }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showOTP, setShowOTP] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     confirmPassword: '',
     name: '',
-    role: 'manager',
-    otp: ''
+    role: 'Manufacturing Manager',
+    otp: '',
+    phone: ''
   });
+
+  const { isAuthenticated, login, register } = useAuth();
+  
+  // Check if user is already logged in
+  useEffect(() => {
+    if (isAuthenticated) {
+      onNavigate('dashboard');
+    }
+  }, [isAuthenticated, onNavigate]);
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    // Clear error when user starts typing again
+    if (error) setError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isLogin) {
-      // Handle login logic
-      console.log('Login:', formData);
-      // Navigate to dashboard after successful login
-      if (onNavigate) {
-        onNavigate('dashboard');
+    setLoading(true);
+    setError('');
+    
+    try {
+      if (isLogin) {
+        // Handle login logic
+        const loginData = {
+          email: formData.email,
+          password: formData.password
+        };
+        
+        await login(loginData);
+        console.log('Login successful');
+        
+        // Navigation will happen automatically through useEffect when isAuthenticated changes
+      } else {
+        // Validate password match
+        if (formData.password !== formData.confirmPassword) {
+          setError("Passwords don't match");
+          setLoading(false);
+          return;
+        }
+        
+        // Handle signup logic
+        const signupData = {
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          confirmPassword: formData.confirmPassword, // Add confirmPassword
+          role: formData.role,
+          phone: formData.phone || undefined // Only include if provided
+        };
+        
+        await register(signupData);
+        console.log('Signup successful');
+        
+        // Navigation will happen automatically through useEffect when isAuthenticated changes
       }
-    } else {
-      // Handle signup logic
-      console.log('Signup:', formData);
-      // Navigate to dashboard after successful signup
-      if (onNavigate) {
-        onNavigate('dashboard');
-      }
+    } catch (err) {
+      console.error('Auth error:', err);
+      setError(err.message || 'Authentication failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -123,20 +167,35 @@ const LoginComponent = ({ onNavigate }) => {
 
         <div className="space-y-6">
           {!isLogin && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Full Name
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Enter your full name"
-                required={!isLogin}
-              />
-            </div>
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter your full name"
+                  required={!isLogin}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Phone Number (Optional)
+                </label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter your phone number"
+                />
+              </div>
+            </>
           )}
 
           <div>
@@ -169,10 +228,10 @@ const LoginComponent = ({ onNavigate }) => {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required={!isLogin}
               >
-                <option value="manager">Manufacturing Manager</option>
-                <option value="operator">Shop-floor Worker</option>
-                <option value="inventory">Inventory Manager</option>
-                <option value="admin">Business Owner/Admin</option>
+                <option value="Admin">Admin</option>
+                <option value="Manufacturing Manager">Manufacturing Manager</option>
+                <option value="Operator">Operator</option>
+                <option value="Inventory Manager">Inventory Manager</option>
               </select>
             </div>
           )}
@@ -245,11 +304,21 @@ const LoginComponent = ({ onNavigate }) => {
             </div>
           )}
 
+          {error && (
+            <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200"
+            disabled={loading}
+            onClick={handleSubmit}
+            className={`w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 ${
+              loading ? 'opacity-70 cursor-not-allowed' : ''
+            }`}
           >
-            {isLogin ? 'Sign In' : 'Create Account'}
+            {loading ? 'Processing...' : isLogin ? 'Sign In' : 'Create Account'}
           </button>
 
           <div className="text-center">
@@ -258,7 +327,10 @@ const LoginComponent = ({ onNavigate }) => {
             </span>
             <button
               type="button"
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={() => {
+                setIsLogin(!isLogin);
+                setError('');
+              }}
               className="text-blue-600 hover:text-blue-800 text-sm font-medium"
             >
               {isLogin ? 'Sign up' : 'Sign in'}

@@ -11,7 +11,7 @@ import {
   Factory
 } from 'lucide-react';
 import MasterMenuNavbar from './components/MasterMenuNavbar';
-import ProfileNavbar from './components/ProfileNavbar';
+
 
 const WorkCenterTableComponent = ({ onNavigate }) => {
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'grid'
@@ -139,8 +139,7 @@ const WorkCenterTableComponent = ({ onNavigate }) => {
               </button>
             </div>
             
-            {/* Profile */}
-            <ProfileNavbar onNavigate={onNavigate} />
+            {/* Profile Removed */}
           </div>
         </div>
       </div>

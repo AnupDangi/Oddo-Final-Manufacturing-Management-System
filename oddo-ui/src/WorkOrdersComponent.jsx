@@ -13,7 +13,7 @@ import {
   Plus
 } from 'lucide-react';
 import MasterMenuNavbar from './components/MasterMenuNavbar';
-import ProfileNavbar from './components/ProfileNavbar';
+
 
 const WorkOrdersComponent = ({ onNavigate }) => {
   const [viewMode, setViewMode] = useState('list');
@@ -119,14 +119,6 @@ const WorkOrdersComponent = ({ onNavigate }) => {
           {/* Left: Master Menu */}
           <div className="flex items-center space-x-4">
             <MasterMenuNavbar onNavigate={onNavigate} currentModule="work-orders" />
-            
-            {/* New Button */}
-            <button 
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center space-x-2 btn-smooth"
-            >
-              <Plus size={16} />
-              <span>New</span>
-            </button>
           </div>
 
           {/* Center: Work Orders Title */}
@@ -175,8 +167,7 @@ const WorkOrdersComponent = ({ onNavigate }) => {
               </button>
             </div>
             
-            {/* Profile */}
-            <ProfileNavbar onNavigate={onNavigate} />
+            {/* Profile Removed */}
           </div>
         </div>
       </div>
