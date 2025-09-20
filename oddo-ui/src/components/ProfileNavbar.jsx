@@ -17,17 +17,35 @@ const ProfileNavbar = ({ onNavigate, onMenuStateChange }) => {
     { key: 'settings', label: 'Settings', icon: Settings },
   ];
 
+  console.log('ProfileNavbar initialized with onNavigate:', !!onNavigate);
+
   const handleProfileAction = (action) => {
     setIsAnimating(true);
     
     setTimeout(() => {
-      if (action === 'logout') {
-        if (onNavigate) {
+      console.log(`ProfileNavbar - handleProfileAction called with action: ${action}`);
+      
+      // Direct navigation to the appropriate view based on action
+      if (onNavigate) {
+        if (action === 'logout') {
           onNavigate('login');
+        } else if (action === 'reports') {
+          console.log('ProfileNavbar - Navigating to reports view');
+          onNavigate('reports');
+        } else if (action === 'profile') {
+          console.log('ProfileNavbar - Navigating to user profile');
+          onNavigate('profile');
+        } else if (action === 'settings') {
+          console.log('ProfileNavbar - Navigating to settings');
+          onNavigate('settings');
+        } else {
+          console.log(`ProfileNavbar - Unknown profile action: ${action}`);
         }
       } else {
-        console.log(`Profile action: ${action}`);
+        console.error('ProfileNavbar - onNavigate function not provided!');
       }
+      
+      // Close the dropdown
       setShowProfileDropdown(false);
       if (onMenuStateChange) {
         onMenuStateChange('profile', false);

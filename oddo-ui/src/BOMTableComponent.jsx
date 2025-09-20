@@ -11,7 +11,7 @@ import {
 import MasterMenuNavbar from './components/MasterMenuNavbar';
 import ProfileNavbar from './components/ProfileNavbar';
 
-const BOMTableComponent = ({ onNavigate }) => {
+const BOMTableComponent = ({ onNavigate, onMenuStateChange }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -350,7 +350,11 @@ const BOMTableComponent = ({ onNavigate }) => {
         <div className="flex items-center justify-between px-6 py-4">
           {/* Left: Master Menu */}
           <div className="flex items-center space-x-4">
-            <MasterMenuNavbar onNavigate={onNavigate} currentModule="bom" />
+            <MasterMenuNavbar 
+              onNavigate={onNavigate} 
+              onMenuStateChange={onMenuStateChange}
+              currentModule="bom" 
+            />
             
             {/* New Button */}
             <button 
@@ -395,7 +399,10 @@ const BOMTableComponent = ({ onNavigate }) => {
             </div>
             
             {/* Profile */}
-            <ProfileNavbar onNavigate={onNavigate} />
+            <ProfileNavbar 
+              onNavigate={onNavigate}
+              onMenuStateChange={onMenuStateChange} 
+            />
           </div>
         </div>
       </div>

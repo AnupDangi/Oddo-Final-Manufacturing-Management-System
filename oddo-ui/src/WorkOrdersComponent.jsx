@@ -15,7 +15,7 @@ import {
 import MasterMenuNavbar from './components/MasterMenuNavbar';
 
 
-const WorkOrdersComponent = ({ onNavigate }) => {
+const WorkOrdersComponent = ({ onNavigate, onMenuStateChange }) => {
   const [viewMode, setViewMode] = useState('list');
   const [searchQuery, setSearchQuery] = useState('');
   const [workOrders, setWorkOrders] = useState([
@@ -118,7 +118,11 @@ const WorkOrdersComponent = ({ onNavigate }) => {
         <div className="flex items-center justify-between px-6 py-4">
           {/* Left: Master Menu */}
           <div className="flex items-center space-x-4">
-            <MasterMenuNavbar onNavigate={onNavigate} currentModule="work-orders" />
+            <MasterMenuNavbar 
+              onNavigate={onNavigate} 
+              onMenuStateChange={onMenuStateChange}
+              currentModule="work-orders" 
+            />
           </div>
 
           {/* Center: Work Orders Title */}

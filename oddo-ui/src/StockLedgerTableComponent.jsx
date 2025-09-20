@@ -9,8 +9,13 @@ import {
   Package
 } from 'lucide-react';
 import MasterMenuNavbar from './components/MasterMenuNavbar';
+import ProfileNavbar from './components/ProfileNavbar';
 
-const StockLedgerTableComponent = ({ onNavigate }) => {
+const StockLedgerTableComponent = ({ onNavigate, onMenuStateChange }) => {
+  console.log('StockLedgerTableComponent - Component mounted');
+  console.log('StockLedgerTableComponent - onNavigate:', typeof onNavigate);
+  console.log('StockLedgerTableComponent - onMenuStateChange:', typeof onMenuStateChange);
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -249,7 +254,11 @@ const StockLedgerTableComponent = ({ onNavigate }) => {
         <div className="flex items-center justify-between px-6 py-4">
           {/* Left: Master Menu */}
           <div className="flex items-center space-x-4">
-            <MasterMenuNavbar onNavigate={onNavigate} currentModule="stock-ledger" />
+            <MasterMenuNavbar 
+              onNavigate={onNavigate} 
+              onMenuStateChange={onMenuStateChange}
+              currentModule="stock-ledger" 
+            />
             
             {/* New Button */}
             <button 

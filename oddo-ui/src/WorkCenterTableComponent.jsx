@@ -11,8 +11,13 @@ import {
   Factory
 } from 'lucide-react';
 import MasterMenuNavbar from './components/MasterMenuNavbar';
+import ProfileNavbar from './components/ProfileNavbar';
 
-const WorkCenterTableComponent = ({ onNavigate }) => {
+const WorkCenterTableComponent = ({ onNavigate, onMenuStateChange }) => {
+  console.log('WorkCenterTableComponent - Component mounted');
+  console.log('WorkCenterTableComponent - onNavigate:', typeof onNavigate);
+  console.log('WorkCenterTableComponent - onMenuStateChange:', typeof onMenuStateChange);
+  
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'grid'
   const [searchTerm, setSearchTerm] = useState('');
   const [showNewModal, setShowNewModal] = useState(false);
@@ -88,7 +93,11 @@ const WorkCenterTableComponent = ({ onNavigate }) => {
         <div className="flex items-center justify-between px-6 py-4">
           {/* Left: Master Menu */}
           <div className="flex items-center space-x-4">
-            <MasterMenuNavbar onNavigate={onNavigate} currentModule="work-center" />
+            <MasterMenuNavbar 
+              onNavigate={onNavigate} 
+              onMenuStateChange={onMenuStateChange}
+              currentModule="work-center" 
+            />
             
             {/* New Button */}
             <button 

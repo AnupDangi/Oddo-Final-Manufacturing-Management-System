@@ -46,12 +46,26 @@ const MasterMenuNavbar = ({ onNavigate, currentModule = '', onMenuStateChange })
   ];
 
   const handleNavigateToModule = (component) => {
+    console.log('MasterMenuNavbar - handleNavigateToModule called with component:', component);
+    console.log('MasterMenuNavbar - onNavigate function exists:', !!onNavigate);
+    
+    // Debug logging for work-center and stock-ledger specifically
+    if (component === 'work-center' || component === 'stock-ledger') {
+      console.log(`MasterMenuNavbar - Special debug for ${component} navigation`);
+      console.log(`MasterMenuNavbar - Current module is: ${currentModule}`);
+      console.log(`MasterMenuNavbar - Matched menu item:`, masterMenuItems.find(item => item.component === component));
+    }
+    
     setIsAnimating(true);
     
     // Add a slight delay for visual feedback
     setTimeout(() => {
       if (onNavigate) {
+        console.log('MasterMenuNavbar - Calling onNavigate with:', component);
+        console.log('MasterMenuNavbar - onNavigate type:', typeof onNavigate);
         onNavigate(component);
+      } else {
+        console.error('MasterMenuNavbar - onNavigate function not provided!');
       }
       setShowMasterMenu(false);
       if (onMenuStateChange) {
@@ -110,7 +124,10 @@ const MasterMenuNavbar = ({ onNavigate, currentModule = '', onMenuStateChange })
                   return (
                     <button
                       key={item.key}
-                      onClick={() => handleNavigateToModule(item.component)}
+                      onClick={() => {
+                        console.log(`MasterMenuNavbar - Click on menu item: ${item.label} (${item.key}), navigating to: ${item.component}`);
+                        handleNavigateToModule(item.component);
+                      }}
                       disabled={isAnimating}
                       className={`w-full text-left p-3 rounded flex items-center space-x-3 transition-all duration-200 transform hover:scale-105 ${
                         isActive 
