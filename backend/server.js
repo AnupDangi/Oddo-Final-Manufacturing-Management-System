@@ -4,7 +4,7 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
 import userRoutes from './routes/auth.js';
-
+import productRoutes from './routes/products.js';
 import  database from './config/database.js';
 // import authRoutes from './routes/auth.js';
 // import userRoutes from './routes/users.js';
@@ -20,6 +20,7 @@ const app = express()
 const PORT = process.env.PORT
 app.use(express.json())
 app.use('/api/auth',userRoutes)
+app.use('/api/products',productRoutes);
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
