@@ -214,3 +214,6 @@ export class BOMController {
         }
     }
 }
+
+// Export as default to support both import styles
+export default BOMController;

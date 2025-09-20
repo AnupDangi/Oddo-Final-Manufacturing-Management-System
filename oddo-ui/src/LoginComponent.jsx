@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Factory, Mail, Lock } from 'lucide-react';
 
-const LoginComponent = () => {
+const LoginComponent = ({ onNavigate }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showOTP, setShowOTP] = useState(false);
@@ -23,9 +23,17 @@ const LoginComponent = () => {
     if (isLogin) {
       // Handle login logic
       console.log('Login:', formData);
+      // Navigate to dashboard after successful login
+      if (onNavigate) {
+        onNavigate('dashboard');
+      }
     } else {
       // Handle signup logic
       console.log('Signup:', formData);
+      // Navigate to dashboard after successful signup
+      if (onNavigate) {
+        onNavigate('dashboard');
+      }
     }
   };
 
@@ -37,6 +45,10 @@ const LoginComponent = () => {
     e.preventDefault();
     console.log('OTP Verification:', formData.otp);
     setShowOTP(false);
+    // Navigate to dashboard after successful OTP verification
+    if (onNavigate) {
+      onNavigate('dashboard');
+    }
   };
 
   if (showOTP) {

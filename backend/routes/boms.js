@@ -13,31 +13,20 @@ router.post('/', authorize('Admin', 'Manufacturing Manager'), BOMController.crea
 // Get all BOMs - All authenticated users
 router.get('/', BOMController.getAllBOMs);
 
-// Get BOM statistics - Admin/Manager only
-router.get('/statistics', authorize('Admin', 'Manufacturing Manager'), BOMController.getBOMStatistics);
-
-// Get BOMs for a specific product - All authenticated users
-router.get('/product/:productId', BOMController.getBOMsByProduct);
-
-// Get default BOM for a product - All authenticated users
-router.get('/product/:productId/default', BOMController.getDefaultBOMByProduct);
+// Get BOM by product - All authenticated users
+router.get('/product/:productId', (req, res) => {
+  // Filter BOMs by product using the getAllBOMs method
+  req.query.product = req.params.productId;
+  BOMController.getAllBOMs(req, res);
+});
 
 // Get BOM by ID - All authenticated users
-router.get('/:bomId', BOMController.getBOMById);
+router.get('/:id', BOMController.getBOMById);
 
 // Update BOM - Admin/Manager only
-router.put('/:bomId', authorize('Admin', 'Manufacturing Manager'), BOMController.updateBOM);
+router.put('/:id', authorize('Admin', 'Manufacturing Manager'), BOMController.updateBOM);
 
 // Delete BOM - Admin only
-router.delete('/:bomId', authorize('Admin'), BOMController.deleteBOM);
-
-// Scale BOM for manufacturing quantity - All authenticated users
-router.post('/:bomId/scale', BOMController.scaleBOM);
-
-// Calculate BOM cost - Admin/Manager only
-router.post('/:bomId/cost', authorize('Admin', 'Manufacturing Manager'), BOMController.calculateBOMCost);
-
-// Clone BOM (create new version) - Admin/Manager only
-router.post('/:bomId/clone', authorize('Admin', 'Manufacturing Manager'), BOMController.cloneBOM);
+router.delete('/:id', authorize('Admin'), BOMController.deleteBOM);
 
 export default router;

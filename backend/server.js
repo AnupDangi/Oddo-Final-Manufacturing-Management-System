@@ -10,6 +10,7 @@ import bomRoutes from './routes/boms.js';
 import stockLedgerRoutes from './routes/stockLedger.js';
 import workOrderRoutes from './routes/workOrders.js';
 import workCenterRoutes from './routes/workCenters.js';
+import manufacturingOrderRoutes from './routes/manufacturingOrders.js';
 
 // import authRoutes from './routes/auth.js';
 // import userRoutes from './routes/users.js';
@@ -22,24 +23,21 @@ import workCenterRoutes from './routes/workCenters.js';
 // import dashboardRoutes from './routes/dashboard.js';
 
 const app = express()
-const PORT = process.env.PORT
+const PORT = process.env.PORT || 5000;
 app.use(express.json())
-app.use('/api/auth',userRoutes)
-app.use('/api/products',productRoutes);
-app.use('/api/v1', bomRoutes);
-app.use('/api/stock', stockLedgerRoutes);
-app.use('/api/work-orders', workOrderRoutes);
-app.use('/api/work-centers', workCenterRoutes)
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Routes
+// Routes - Use these consolidated routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/products', productRoutes);
 app.use('/api/v1/boms', bomRoutes);
 app.use('/api/v1/manufacturing-orders', manufacturingOrderRoutes);
+app.use('/api/v1/work-orders', workOrderRoutes);
+app.use('/api/v1/work-centers', workCenterRoutes);
+app.use('/api/v1/stock-ledger', stockLedgerRoutes);
 // app.use('/api/v1/users', userRoutes);
 // app.use('/api/v1/products', productRoutes);
 // app.use('/api/v1/work-centers', workCenterRoutes);
