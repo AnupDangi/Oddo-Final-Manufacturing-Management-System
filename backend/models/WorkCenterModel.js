@@ -9,6 +9,9 @@ const workCenterSchema = new mongoose.Schema({
     description: {
         type: String
     },
+    location: {
+        type: String
+    },
     capacity_per_hour: {
         type: Number,
         required: true
@@ -17,9 +20,10 @@ const workCenterSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
-    is_active: {
-        type: Boolean,
-        default: true
+    status: {
+        type: String,
+        enum: ['Active', 'Maintenance', 'Inactive'],
+        default: 'Active'
     }
 }, {
     timestamps: {
@@ -27,6 +31,10 @@ const workCenterSchema = new mongoose.Schema({
         updatedAt: 'updated_at'
     }
 });
+
+// Add indexes for better performance
+workCenterSchema.index({ status: 1 });
+workCenterSchema.index({ name: 1 });
 
 const WorkCenter = mongoose.model('WorkCenter', workCenterSchema);
 export default WorkCenter;

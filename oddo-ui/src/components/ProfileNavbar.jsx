@@ -6,10 +6,12 @@ import {
   Settings,
   LogOut
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const ProfileNavbar = ({ onNavigate, onMenuStateChange }) => {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const { logout } = useAuth();
 
   const profileMenuItems = [
     { key: 'profile', label: 'My Profile', icon: User },
@@ -25,24 +27,27 @@ const ProfileNavbar = ({ onNavigate, onMenuStateChange }) => {
     setTimeout(() => {
       console.log(`ProfileNavbar - handleProfileAction called with action: ${action}`);
       
-      // Direct navigation to the appropriate view based on action
-      if (onNavigate) {
-        if (action === 'logout') {
-          onNavigate('login');
-        } else if (action === 'reports') {
-          console.log('ProfileNavbar - Navigating to reports view');
-          onNavigate('reports');
-        } else if (action === 'profile') {
-          console.log('ProfileNavbar - Navigating to user profile');
-          onNavigate('profile');
-        } else if (action === 'settings') {
-          console.log('ProfileNavbar - Navigating to settings');
-          onNavigate('settings');
-        } else {
-          console.log(`ProfileNavbar - Unknown profile action: ${action}`);
-        }
+      // Handle logout separately using AuthContext
+      if (action === 'logout') {
+        logout(); // This will trigger the auth state change and redirect to login
       } else {
-        console.error('ProfileNavbar - onNavigate function not provided!');
+        // Direct navigation to the appropriate view based on action
+        if (onNavigate) {
+          if (action === 'reports') {
+            console.log('ProfileNavbar - Navigating to reports view');
+            onNavigate('reports');
+          } else if (action === 'profile') {
+            console.log('ProfileNavbar - Navigating to user profile');
+            onNavigate('profile');
+          } else if (action === 'settings') {
+            console.log('ProfileNavbar - Navigating to settings');
+            onNavigate('settings');
+          } else {
+            console.log(`ProfileNavbar - Unknown profile action: ${action}`);
+          }
+        } else {
+          console.error('ProfileNavbar - onNavigate function not provided!');
+        }
       }
       
       // Close the dropdown

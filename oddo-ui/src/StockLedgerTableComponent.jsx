@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Plus, 
   Search, 
@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import MasterMenuNavbar from './components/MasterMenuNavbar';
 import ProfileNavbar from './components/ProfileNavbar';
+import { productService } from './services/api';
 
 const StockLedgerTableComponent = ({ onNavigate, onMenuStateChange }) => {
   console.log('StockLedgerTableComponent - Component mounted');
@@ -18,6 +19,9 @@ const StockLedgerTableComponent = ({ onNavigate, onMenuStateChange }) => {
   
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     product: '',
     unitCost: '',
@@ -29,32 +33,42 @@ const StockLedgerTableComponent = ({ onNavigate, onMenuStateChange }) => {
     outgoing: ''
   });
 
-  const stockItems = [
-    {
-      id: 1,
-      product: 'Dining Table',
-      unitCost: 1200,
-      unit: 'Unit',
-      totalValue: 600000,
-      onHand: 500,
-      freeToUse: 270,
-      incoming: 0,
-      outgoing: 230
-    },
-    {
-      id: 2,
-      product: 'Drawer',
-      unitCost: 100,
-      unit: 'Unit',
-      totalValue: 2000,
-      onHand: 20,
-      freeToUse: 20,
-      incoming: 0,
-      outgoing: 0
-    }
-  ];
+  // Fetch products from backend
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
-  const filteredItems = stockItems.filter(item =>
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const response = await productService.getAll();
+      if (response.success) {
+        setProducts(response.data || []);
+      } else {
+        setError(response.message || 'Failed to fetch products');
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      setError('Failed to fetch products. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Transform products into stock ledger items format
+  const stockLedgerItems = products.map(product => ({
+    id: product._id || product.id,
+    product: product.name,
+    unitCost: product.standard_cost || 0,
+    unit: product.unit_of_measure || 'Unit',
+    totalValue: (product.current_stock || 0) * (product.standard_cost || 0),
+    onHand: product.current_stock || 0,
+    freeToUse: Math.max(0, (product.current_stock || 0) - (product.reorder_point || 0)),
+    incoming: 0, // This would need to be calculated from pending orders
+    outgoing: 0  // This would need to be calculated from pending work orders
+  }));
+
+  const filteredItems = stockLedgerItems.filter(item =>
     item.product.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -308,93 +322,119 @@ const StockLedgerTableComponent = ({ onNavigate, onMenuStateChange }) => {
         </div>
       </div>
 
-      {/* Table Content */}
-      <div className="p-6">
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Product
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Unit Cost
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Unit
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total Value
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  On Hand
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Free to Use
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Incoming
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Outgoing
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredItems.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {item.product}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {item.unitCost} Rs
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {item.unit}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {item.totalValue.toLocaleString()}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {item.onHand}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {item.freeToUse}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {item.incoming}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {item.outgoing}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          
-          {filteredItems.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-500">No products found</p>
-            </div>
-          )}
+      {/* Loading and Error States */}
+      {loading && (
+        <div className="p-6 text-center">
+          <div className="inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="mt-2 text-gray-600">Loading stock data...</p>
         </div>
-      </div>
+      )}
+
+      {error && (
+        <div className="p-6">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-red-600">{error}</p>
+            <button 
+              onClick={fetchProducts}
+              className="mt-2 text-sm text-red-700 hover:text-red-900 underline"
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Table Content */}
+      {!loading && !error && (
+        <div className="p-6">
+          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Product
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Unit Cost
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Unit
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Total Value
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    On Hand
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Free to Use
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Incoming
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Outgoing
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredItems.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" className="px-6 py-8 text-center text-gray-500">
+                      {searchTerm ? 'No stock entries found matching your search.' : 'No stock data available.'}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredItems.map((item) => (
+                    <tr key={item.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          {item.product}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {item.unitCost} Rs
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {item.unit}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {item.totalValue.toLocaleString()}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {item.onHand}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {item.freeToUse}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {item.incoming}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {item.outgoing}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

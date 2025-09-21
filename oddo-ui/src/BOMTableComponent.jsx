@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Plus, 
   Search, 
@@ -10,18 +10,46 @@ import {
 } from 'lucide-react';
 import MasterMenuNavbar from './components/MasterMenuNavbar';
 import ProfileNavbar from './components/ProfileNavbar';
+import { bomService, productService } from './services/api';
 
 const BOMTableComponent = ({ onNavigate, onMenuStateChange }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [bomItems, setBomItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     finishedProduct: '',
+    finishedProductId: '',
     reference: '',
+    version: '1.0',
     components: [],
     operations: []
   });
 
-  const bomItems = [
+  // Fetch BOMs from backend
+  useEffect(() => {
+    fetchBOMs();
+  }, []);
+
+  const fetchBOMs = async () => {
+    try {
+      setLoading(true);
+      const response = await bomService.getAll();
+      if (response.success) {
+        setBomItems(response.data || []);
+      } else {
+        setError(response.message || 'Failed to fetch BOMs');
+      }
+    } catch (error) {
+      console.error('Error fetching BOMs:', error);
+      setError('Failed to fetch BOMs. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const bomItems_static = [
     {
       id: 1,
       finishedProduct: 'Drawer',
@@ -30,7 +58,8 @@ const BOMTableComponent = ({ onNavigate, onMenuStateChange }) => {
   ];
 
   const filteredItems = bomItems.filter(item =>
-    item.finishedProduct.toLowerCase().includes(searchTerm.toLowerCase())
+    item.product?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.reference?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleInputChange = (e) => {
@@ -409,40 +438,100 @@ const BOMTableComponent = ({ onNavigate, onMenuStateChange }) => {
 
       {/* Table Content */}
       <div className="p-6">
+        {error && (
+          <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+            {error}
+            <button 
+              onClick={fetchBOMs}
+              className="ml-2 text-red-800 hover:text-red-900 underline"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Finished Product
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Reference
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredItems.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50 cursor-pointer">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {item.finishedProduct}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {item.reference}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          
-          {filteredItems.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-500">No BOMs found</p>
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <span className="ml-2 text-gray-600">Loading BOMs...</span>
             </div>
+          ) : (
+            <>
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Finished Product
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Reference
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Version
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Components
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredItems.map((item) => (
+                    <tr key={item._id} className="hover:bg-gray-50 cursor-pointer">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          {item.product?.name || 'Unknown Product'}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          SKU: {item.product?.sku || 'N/A'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {item.reference || 'N/A'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {item.version || '1.0'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {item.components?.length || 0} components
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          item.is_active 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {item.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              
+              {filteredItems.length === 0 && !loading && (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">
+                    {searchTerm ? 'No BOMs found matching your search' : 'No BOMs found'}
+                  </p>
+                  <button 
+                    onClick={handleNewBOM}
+                    className="mt-2 text-blue-600 hover:text-blue-800 underline"
+                  >
+                    Create your first BOM
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
