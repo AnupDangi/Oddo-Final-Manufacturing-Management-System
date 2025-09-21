@@ -26,67 +26,67 @@ router.post('/by-product-search',
 
 // Get all manufacturing orders with filtering - Admin, Manager, Operator
 router.get('/', 
-  requireRole(['admin', 'manager', 'operator']), 
+  requireRole('Admin', 'Manufacturing Manager', 'Production Operator'), 
   ManufacturingOrderController.getAllManufacturingOrders
 );
 
 // Search manufacturing orders for dropdown - Admin, Manager, Operator
 router.get('/search', 
-  requireRole(['admin', 'manager', 'operator']), 
+  requireRole('Admin', 'Manufacturing Manager', 'Production Operator'), 
   ManufacturingOrderController.searchForDropdown
 );
 
 // Get manufacturing order statistics - Admin, Manager
 router.get('/statistics', 
-  requireRole(['admin', 'manager']), 
+  requireRole('Admin', 'Manufacturing Manager'), 
   ManufacturingOrderController.getStatistics
 );
 
 // Get manufacturing orders by status - Admin, Manager, Operator
 router.get('/by-status/:status', 
-  requireRole(['admin', 'manager', 'operator']), 
+  requireRole('Admin', 'Manufacturing Manager', 'Production Operator'), 
   ManufacturingOrderController.getByStatus
 );
 
 // Get manufacturing order by ID - Admin, Manager, Operator
 router.get('/:id', 
-  requireRole(['admin', 'manager', 'operator']), 
+  requireRole('Admin', 'Manufacturing Manager', 'Production Operator'), 
   ManufacturingOrderController.getManufacturingOrderById
 );
 
 // Update manufacturing order - Admin, Manager only
 router.put('/:id', 
-  requireRole(['admin', 'manager']), 
+  requireRole('Admin', 'Manufacturing Manager'), 
   ManufacturingOrderController.updateManufacturingOrder
 );
 
 // Update manufacturing order status - Admin, Manager, Operator
 router.patch('/:id/status', 
-  requireRole(['admin', 'manager', 'operator']), 
+  requireRole('Admin', 'Manufacturing Manager', 'Production Operator'), 
   ManufacturingOrderController.updateStatus
 );
 
 // Cancel manufacturing order - Admin, Manager only
 router.patch('/:id/cancel', 
-  requireRole(['admin', 'manager']), 
+  requireRole('Admin', 'Manufacturing Manager'), 
   ManufacturingOrderController.cancelManufacturingOrder
 );
 
 // Get material requirements - Admin, Manager, Inventory
 router.get('/:id/material-requirements', 
-  requireRole(['admin', 'manager', 'inventory']), 
+  requireRole('Admin', 'Manufacturing Manager', 'Inventory Manager'), 
   ManufacturingOrderController.getMaterialRequirements
 );
 
 // Check material availability - Admin, Manager, Inventory
 router.post('/:id/check-materials', 
-  requireRole(['admin', 'manager', 'inventory']), 
+  requireRole('Admin', 'Manufacturing Manager', 'Inventory Manager'), 
   ManufacturingOrderController.checkMaterialAvailability
 );
 
 // Generate work orders - Admin, Manager only
 router.post('/:id/generate-work-orders', 
-  requireRole(['admin', 'manager']), 
+  requireRole('Admin', 'Manufacturing Manager'), 
   ManufacturingOrderController.generateWorkOrders
 );
 

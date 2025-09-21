@@ -131,20 +131,8 @@ const ManufacturingOrdersComponent = ({ onNavigate, onMenuStateChange }) => {
   };
 
   const handleCreateOrder = () => {
-    setModalMode('create');
-    setFormData({
-      id: `MO${String(manufacturingOrders.length + 1).padStart(3, '0')}`,
-      product: '',
-      quantity: '',
-      priority: 'Medium',
-      startDate: '',
-      dueDate: '',
-      assignee: '',
-      description: '',
-      bomId: '',
-      workCenter: ''
-    });
-    setShowModal(true);
+    // Navigate to the manufacturing order form
+    onNavigate('manufacturing-order-form');
   };
 
   const handleSaveOrder = () => {

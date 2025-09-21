@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Plus, 
   Search, 
@@ -11,55 +11,42 @@ import {
   Factory
 } from 'lucide-react';
 import MasterMenuNavbar from './components/MasterMenuNavbar';
+import ProfileNavbar from './components/ProfileNavbar';
+import { workCenterService } from './services/api';
 
-
-const WorkCenterTableComponent = ({ onNavigate }) => {
+const WorkCenterTableComponent = ({ onNavigate, onMenuStateChange }) => {
+  console.log('WorkCenterTableComponent - Component mounted');
+  console.log('WorkCenterTableComponent - onNavigate:', typeof onNavigate);
+  console.log('WorkCenterTableComponent - onMenuStateChange:', typeof onMenuStateChange);
+  
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'grid'
   const [searchTerm, setSearchTerm] = useState('');
   const [showNewModal, setShowNewModal] = useState(false);
+  const [workCenters, setWorkCenters] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const workCenters = [
-    {
-      id: 1,
-      name: 'Work Center 1',
-      costPerHour: 50,
-      location: 'Building A - Floor 1',
-      capacity: '100 units/hour',
-      status: 'Active'
-    },
-    {
-      id: 2,
-      name: 'Assembly Line A',
-      costPerHour: 75,
-      location: 'Building A - Floor 1',
-      capacity: '80 units/hour',
-      status: 'Active'
-    },
-    {
-      id: 3,
-      name: 'Paint Floor',
-      costPerHour: 60,
-      location: 'Building B - Floor 2',
-      capacity: '50 units/hour',
-      status: 'Maintenance'
-    },
-    {
-      id: 4,
-      name: 'Packaging Line',
-      costPerHour: 40,
-      location: 'Building A - Floor 2',
-      capacity: '120 units/hour',
-      status: 'Active'
-    },
-    {
-      id: 5,
-      name: 'Quality Control',
-      costPerHour: 65,
-      location: 'Building C - Floor 1',
-      capacity: '60 units/hour',
-      status: 'Active'
+  // Fetch work centers from backend
+  useEffect(() => {
+    fetchWorkCenters();
+  }, []);
+
+  const fetchWorkCenters = async () => {
+    try {
+      setLoading(true);
+      const response = await workCenterService.getAll();
+      if (response.success) {
+        setWorkCenters(response.data || []);
+      } else {
+        setError(response.message || 'Failed to fetch work centers');
+      }
+    } catch (error) {
+      console.error('Error fetching work centers:', error);
+      setError('Failed to fetch work centers. Please try again.');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   const filteredWorkCenters = workCenters.filter(center =>
     center.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -89,7 +76,11 @@ const WorkCenterTableComponent = ({ onNavigate }) => {
         <div className="flex items-center justify-between px-6 py-4">
           {/* Left: Master Menu */}
           <div className="flex items-center space-x-4">
-            <MasterMenuNavbar onNavigate={onNavigate} currentModule="work-center" />
+            <MasterMenuNavbar 
+              onNavigate={onNavigate} 
+              onMenuStateChange={onMenuStateChange}
+              currentModule="work-center" 
+            />
             
             {/* New Button */}
             <button 
@@ -139,108 +130,135 @@ const WorkCenterTableComponent = ({ onNavigate }) => {
               </button>
             </div>
             
-            {/* Profile Removed */}
+            {/* Profile */}
+            <ProfileNavbar onNavigate={onNavigate} />
           </div>
         </div>
       </div>
 
 
 
-      {/* Table Content */}
-      <div className="p-6">
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Work Center
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Cost per hour
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Location
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Capacity
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredWorkCenters.map((workCenter) => (
-                <tr key={workCenter.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {workCenter.name}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      ${workCenter.costPerHour}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {workCenter.location}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {workCenter.capacity}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      workCenter.status === 'Active' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {workCenter.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleView(workCenter)}
-                        className="text-blue-600 hover:text-blue-900"
-                        title="View"
-                      >
-                        <Eye size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleEdit(workCenter)}
-                        className="text-green-600 hover:text-green-900"
-                        title="Edit"
-                      >
-                        <Edit size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(workCenter)}
-                        className="text-red-600 hover:text-red-900"
-                        title="Delete"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          
-          {filteredWorkCenters.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-500">No work centers found</p>
-            </div>
-          )}
+      {/* Loading and Error States */}
+      {loading && (
+        <div className="p-6 text-center">
+          <div className="inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="mt-2 text-gray-600">Loading work centers...</p>
         </div>
-      </div>
+      )}
+
+      {error && (
+        <div className="p-6">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-red-600">{error}</p>
+            <button 
+              onClick={fetchWorkCenters}
+              className="mt-2 text-sm text-red-700 hover:text-red-900 underline"
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Table Content */}
+      {!loading && !error && (
+        <div className="p-6">
+          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Work Center
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Cost per hour
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Location
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Capacity
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredWorkCenters.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                      {searchTerm ? 'No work centers found matching your search.' : 'No work centers available.'}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredWorkCenters.map((workCenter) => (
+                    <tr key={workCenter._id || workCenter.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          {workCenter.name}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          ${workCenter.costPerHour || workCenter.hourlyRate || 0}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {workCenter.location}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {workCenter.capacity}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          workCenter.status === 'Active' 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {workCenter.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleView(workCenter)}
+                            className="text-blue-600 hover:text-blue-900"
+                            title="View"
+                          >
+                            <Eye size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleEdit(workCenter)}
+                            className="text-green-600 hover:text-green-900"
+                            title="Edit"
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(workCenter)}
+                            className="text-red-600 hover:text-red-900"
+                            title="Delete"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* New Work Center Modal */}
       {showNewModal && (

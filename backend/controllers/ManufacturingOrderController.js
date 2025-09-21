@@ -20,7 +20,11 @@ class ManufacturingOrderController {
         product, 
         quantity, 
         planned_start_date, 
-        planned_end_date
+        planned_end_date,
+        assignee,
+        priority = 'Normal',
+        description,
+        work_center
       } = req.body;
 
       // Validation
@@ -50,23 +54,43 @@ class ManufacturingOrderController {
       // Calculate cost for the manufacturing order
       const costCalculation = await BOM.calculateBOMCost(bom._id, quantity);
 
+      // Prepare expanded components for the manufacturing order
+      const componentsRequired = costCalculation.components.map(comp => ({
+        component_product: comp.product_id || comp._id, // Ensure we have the ObjectId
+        quantity_required: comp.quantity_required,
+        total_cost: comp.total_cost
+      }));
+
       const manufacturingOrderData = {
         product,
         bom_version: bom._id,
         quantity: parseFloat(quantity),
         planned_start_date,
         planned_end_date,
+        assignee,
+        priority,
+        description,
+        work_center,
+        components_required: componentsRequired,
         status: 'Draft'
       };
 
       const manufacturingOrder = await ManufacturingOrder.create(manufacturingOrderData);
+
+      // Populate the created order for response
+      const populatedOrder = await ManufacturingOrder.findById(manufacturingOrder._id)
+        .populate('product', 'name sku category')
+        .populate('bom_version', 'reference version')
+        .populate('components_required.component_product', 'name sku unit_of_measure standard_cost')
+        .populate('assignee', 'name email')
+        .populate('work_center', 'name location');
 
       // Return detailed response with BOM information
       res.status(201).json({
         success: true,
         message: 'Manufacturing order created successfully',
         data: {
-          manufacturing_order: manufacturingOrder,
+          manufacturing_order: populatedOrder,
           bom_details: {
             bom_id: bom._id,
             version: bom.version,
@@ -97,7 +121,11 @@ class ManufacturingOrderController {
         product_search, 
         quantity, 
         planned_start_date, 
-        planned_end_date
+        planned_end_date,
+        assignee,
+        priority = 'Normal',
+        description,
+        work_center
       } = req.body;
 
       // Validation
@@ -151,23 +179,43 @@ class ManufacturingOrderController {
       // Calculate cost for the manufacturing order
       const costCalculation = await BOM.calculateBOMCost(bom._id, quantity);
 
+      // Prepare expanded components for the manufacturing order
+      const componentsRequired = costCalculation.components.map(comp => ({
+        component_product: comp.product_id || comp._id, // Ensure we have the ObjectId
+        quantity_required: comp.quantity_required,
+        total_cost: comp.total_cost
+      }));
+
       const manufacturingOrderData = {
         product: product._id,
         bom_version: bom._id,
         quantity: parseFloat(quantity),
         planned_start_date,
         planned_end_date,
+        assignee,
+        priority,
+        description,
+        work_center,
+        components_required: componentsRequired,
         status: 'Draft'
       };
 
       const manufacturingOrder = await ManufacturingOrder.create(manufacturingOrderData);
+
+      // Populate the created order for response
+      const populatedOrder = await ManufacturingOrder.findById(manufacturingOrder._id)
+        .populate('product', 'name sku category')
+        .populate('bom_version', 'reference version')
+        .populate('components_required.component_product', 'name sku unit_of_measure standard_cost')
+        .populate('assignee', 'name email')
+        .populate('work_center', 'name location');
 
       // Return detailed response with product and BOM information
       res.status(201).json({
         success: true,
         message: 'Manufacturing order created successfully',
         data: {
-          manufacturing_order: manufacturingOrder,
+          manufacturing_order: populatedOrder,
           product_details: {
             _id: product._id,
             name: product.name,
@@ -221,13 +269,45 @@ class ManufacturingOrderController {
         end_date
       };
 
-      const result = await ManufacturingOrder.find(options);
+      // Build query filters
+      const queryFilters = {};
+      if (status) queryFilters.status = status;
+      if (priority) queryFilters.priority = priority;
+      if (product_id) queryFilters.product = product_id;
+      if (created_by) queryFilters.assignee = created_by;
+      if (start_date || end_date) {
+        queryFilters.planned_start_date = {};
+        if (start_date) queryFilters.planned_start_date.$gte = new Date(start_date);
+        if (end_date) queryFilters.planned_start_date.$lte = new Date(end_date);
+      }
+
+      // Calculate pagination
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+      
+      // Get total count for pagination
+      const totalCount = await ManufacturingOrder.countDocuments(queryFilters);
+      
+      // Get the data with population
+      const manufacturingOrders = await ManufacturingOrder.find(queryFilters)
+        .populate('product', 'name sku category')
+        .populate('bom_version', 'reference version')
+        .populate('components_required.component_product', 'name sku unit_of_measure standard_cost')
+        .populate('assignee', 'name email')
+        .populate('work_center', 'name location')
+        .skip(skip)
+        .limit(parseInt(limit))
+        .sort({ created_at: -1 });
 
       res.json({
         success: true,
         message: 'Manufacturing orders retrieved successfully',
-        data: result.data,
-        pagination: result.pagination
+        data: manufacturingOrders,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: totalCount,
+          pages: Math.ceil(totalCount / parseInt(limit))
+        }
       });
     } catch (error) {
       console.error('Get manufacturing orders error:', error);
@@ -248,7 +328,12 @@ class ManufacturingOrderController {
     try {
       const { id } = req.params;
 
-      const manufacturingOrder = await ManufacturingOrder.findById(id);
+      const manufacturingOrder = await ManufacturingOrder.findById(id)
+        .populate('product', 'name sku category')
+        .populate('bom_version', 'reference version')
+        .populate('components_required.component_product', 'name sku unit_of_measure standard_cost')
+        .populate('assignee', 'name email')
+        .populate('work_center', 'name location');
 
       if (!manufacturingOrder) {
         return res.status(404).json({
@@ -287,22 +372,27 @@ class ManufacturingOrderController {
       restrictedFields.forEach(field => delete updateData[field]);
 
       // Validate priority if provided
-      if (updateData.priority && !['low', 'medium', 'high', 'urgent'].includes(updateData.priority)) {
+      if (updateData.priority && !['Low', 'Normal', 'High', 'Urgent'].includes(updateData.priority)) {
         return res.status(400).json({
           success: false,
-          message: 'Priority must be low, medium, high, or urgent'
+          message: 'Priority must be Low, Normal, High, or Urgent'
         });
       }
 
       // Validate status if provided
-      if (updateData.status && !['planned', 'released', 'in_progress', 'completed', 'cancelled'].includes(updateData.status)) {
+      if (updateData.status && !['Draft', 'Ready', 'In Progress', 'Done', 'Cancelled'].includes(updateData.status)) {
         return res.status(400).json({
           success: false,
           message: 'Invalid status value'
         });
       }
 
-      const updatedManufacturingOrder = await ManufacturingOrder.findByIdAndUpdate(id, updateData, { new: true });
+      const updatedManufacturingOrder = await ManufacturingOrder.findByIdAndUpdate(id, updateData, { new: true })
+        .populate('product', 'name sku category')
+        .populate('bom_version', 'reference version')
+        .populate('components_required.component_product', 'name sku unit_of_measure standard_cost')
+        .populate('assignee', 'name email')
+        .populate('work_center', 'name location');
 
       if (!updatedManufacturingOrder) {
         return res.status(404).json({
